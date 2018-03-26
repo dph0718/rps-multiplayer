@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Rock, Paper, Scissors</title>
+    <!-- reset css -->
+    <link rel='stylesheet' href='./assets/css/reset.css'>
+    <!-- style css -->
+    <link rel='stylesheet' href="./assets/css/style.css">
+</head>
+
+<body>
+    <div id=arena>
+        <div id=p1>
+            Player 1
+        </div>
+        <div id=p2>
+            Player 2
+        </div>
+        <div id=weapons>
+            <div id=rock>rock</div>
+            <div id=paper>paper</div>
+            <div id=scissors>scissors</div>
+        </div>
+        <div id=gameMessage>
+            gameMessage
+        </div>
+    </div>
+
+    <div id=chatPanel>
+        chatPanel
+    </div>
+
+
+
+    <!-- firebase -->
+    <script src="https://www.gstatic.com/firebasejs/4.12.0/firebase.js"></script>
+    <!-- jquery -->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+        crossorigin="anonymous"></script>
+    <!-- <script src='./assets/javascript/game.js'></script> -->
+    <script>
+        var config = {
+            apiKey: "AIzaSyAaBVqSpRzZqvxA9liGx0vGdya6UIs8kjE",
+            authDomain: "rockpaperscissors-5c541.firebaseapp.com",
+            databaseURL: "https://rockpaperscissors-5c541.firebaseio.com",
+            projectId: "rockpaperscissors-5c541",
+            storageBucket: "",
+            messagingSenderId: "849374043440"
+        };
+        firebase.initializeApp(config);
+        var dory = "Cacciatori";
+        var db = firebase.database();
+        db.ref().update({
+            variable: 'nice',
+        })
+        db.ref('hunky').update({
+            dory: dory,
+        })
+        db.ref().child('monkey').update({
+            breed: 'chimpanzanies',
+        })
+
+        db.ref('hunky/door').update({
+            open: false,
+        })
+
+
+
+
+
+
+
+var armed;
+        //weapon object constructor
+        var Weapon = function (name, imageUrl) {
+            this.name = name;
+            this.image = imageUrl
+            this.button = $('<img>').attr('src', imageUrl)
+                .attr('class', 'weaponButton')
+                .attr('id', this.name + 'Button')
+                .data('weapon', this.name);
+        }
+
+        //weapon objects
+        var rock = new Weapon('rock', './assets/images/rock.png');
+        var paper = new Weapon('paper', './assets/images/paper.png');
+        var scissors = new Weapon('scissors', './assets/images/scissors.png');
+
+        //click on the weapon button, you are armed and your chosenWeapon is the thing you clicked on.
+        $(document).on('click', '.weaponButton', function () {
+            if (armed === true) {
+                return;
+            } else if (armed === false) {
+                chosenWeapon = $(this).data('weapon');
+                armed = true;
+                db.ref().update({
+                    'weapon': chosenWeapon
+                })
+                console.log('weapon', chosenWeapon);
+            }
+        })
+
+        $('#rock').append(rock.button);
+        $('#paper').append(paper.button);
+        $('#scissors').append(scissors.button);
+
+
+        //push player's choice to firebase
+
+
+
+//logic for wins
+
+//make the chat thing work.
+
+
+    </script>
+</body>
+
+</html>
