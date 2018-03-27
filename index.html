@@ -13,36 +13,46 @@
 </head>
 
 <body>
-    <div id=arena>
-        <div id=p1>
+    <div id='arena'>
+        <div id='p1'>
             Player 1
         </div>
-        <div id=p2>
+        <div id='p1Score'></div>
+        <div id='p2'>
             Player 2
         </div>
-        <div id=weapons>
-            <div id=rock>rock</div>
-            <div id=paper>paper</div>
-            <div id=scissors>scissors</div>
+        <div id='p2Score'></div>
+        <div id='weapons'>
+            <div id='rock'>rock</div>
+            <div id='paper'>paper</div>
+            <div id='scissors'>scissors</div>
         </div>
-        <div id=gameMessage>
-            gameMessage
+        <div id='gameMessage'>
+            Choose your weapon.
         </div>
     </div>
 
-    <div id=chatPanel>
+    <div id='chatPanel'>
         chatPanel
+        <form>
+            <input id='sayThings' type='text'>
+            <button type='submit'>Say that.</button>
+        </form>
+        <div id='chatbox'>
+            
+        </div>
     </div>
 
 
 
-    <!-- firebase -->
     <script src="https://www.gstatic.com/firebasejs/4.12.0/firebase.js"></script>
     <!-- jquery -->
     <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
         crossorigin="anonymous"></script>
     <!-- <script src='./assets/javascript/game.js'></script> -->
     <script>
+        //===============================firebase initialization=====================================
+
         var config = {
             apiKey: "AIzaSyAaBVqSpRzZqvxA9liGx0vGdya6UIs8kjE",
             authDomain: "rockpaperscissors-5c541.firebaseapp.com",
@@ -52,29 +62,165 @@
             messagingSenderId: "849374043440"
         };
         firebase.initializeApp(config);
-        var dory = "Cacciatori";
+
+        //===========================================list of important variables=========================
+
         var db = firebase.database();
-        db.ref().update({
-            variable: 'nice',
-        })
-        db.ref('hunky').update({
-            dory: dory,
-        })
-        db.ref().child('monkey').update({
-            breed: 'chimpanzanies',
-        })
+        var dbRef = db.ref();
+        var thisPlayer;
+        var otherPlayer;
+        var myWeapon = 'sword';
+        var otherWeapon = 'karate skills';
+        var gameState = 0;
+        //0 - not started; 1 - players exist, awaiting both selections; 2 - both players have selected weapons; 3 - 
+        var armed = false;
+        var p1Ready = false;
+        var p2Ready = false;
+        var myScore = 0;
+        var yourScore = 0;
+        var battleResult;
 
-        db.ref('hunky/door').update({
-            open: false,
-        })
+        function updatePlayer(n) {
+            db.ref('player' + n).update({
+                present: true,
+            })
+        }
+
+        //Determines if there's a player already, and assigns player number accordingly.
+        function checkPlayers() {
+            dbRef.once('value', function (snap) {
+                console.log(snap.val());
+                var p1Exists = snap.val().player1.present;
+                var p2Exists = snap.val().player2.present;
+                if (p1Exists && p2Exists) {
+                    gameState = 1;
+                    thisPlayer = 3;
+                } else if (p1Exists && !p2Exists) {
+                    gameState = 1;
+                    thisPlayer = 2;
+                    otherPlayer = 1;
+                } else if (!p1Exists && p2Exists) {
+                    gameState = 1;
+                    thisPlayer = 1;
+                    otherPlayer = 2
+                } else {
+                    gameState = 1;
+                    thisPlayer = 1;
+                    otherPlayer = 2;
+                }
+                updatePlayer(thisPlayer);
+                console.log("gamestate: ", gameState);
+                console.log('this player is: ', thisPlayer);
+                console.log(p1Exists, "that player 1 exists");
+                console.log(p2Exists, "that player 2 exists");
+                console.log(snap.val().player1.present);
+                console.log(snap.val().player2.present);
+            })
+        }
+
+        //==============================sets data in firebase to initial data======================================
+        function setUp() {
+            myScore = 0;
+            yourScore = 0;
+            db.ref().update({
+                "player1/score": myScore,
+                "player2/score": yourScore,
+                "player1/weapon": null,
+                //change these values after debugging to null and false
+                "player2/weapon": 'rock',
+                "player2/present": true,
+            })
+
+        }
+        //==============================logging chosen weapons======================================
 
 
 
 
+        function logWeapons() {
+            var thatWeapon = db.ref("player" + otherPlayer + "/weapon");
+            var thisWeapon = db.ref("player" + thisPlayer + "/weapon");
 
 
+            thatWeapon.on('value', function (snap) {
+                otherWeapon = snap.val();
+                p2Ready = true;
+            })
+            thisWeapon.on('value', function (snap) {
+                myWeapon = snap.val();
+                p1Ready = true;
+            })
+            if (p1Ready === true && p2Ready === true) {
+                battle();
+            } else {
+                setTimeout(logWeapons, 300);
+            }
+            console.log(p1Ready, p2Ready);
+        }
 
-var armed;
+        //==============================comparing chosen weapons, scoring ======================================
+
+        function battle() {
+            if (myWeapon === "rock") {
+                if (otherWeapon === "rock") {
+                    battleResult = "It's a tie! Two rocks collide. *Clack*"
+                }
+                if (otherWeapon === "paper") {
+                    battleResult = "Your rock has weighed the paper down. You win!"
+                    myScore += 1;
+                    db.ref('player' + thisPlayer).update({
+                        score: myScore,
+                    })
+                }
+                if (otherWeapon === "scissors") {
+                    battleResult = "Your rock was cut to shreds. You lose."
+                }
+            }
+            if (myWeapon === "paper") {
+                if (otherWeapon === "paper") {
+                    battleResult = "You both get paper cuts."
+                }
+                if (otherWeapon === "scissors") {
+                    battleResult = "Your paper wraps around the scissors and they cannot be opened. You win!"
+                    myScore += 1;
+                    db.ref('player' + thisPlayer).update({
+                        score: myScore,
+                    })
+                }
+                if (otherWeapon === "rock") {
+                    battleResult = "Your paper cannot be lifted against the weight of the rock. You lose."
+                }
+            }
+            if (myWeapon === "scissors") {
+                if (otherWeapon === "scissors") {
+                    battleResult = "Tie! One more scissor and you could remake one of Johnny Depp's hands."
+                }
+                if (otherWeapon === "rock") {
+                    battleResult = "Your scissors cut straight through that rock. Impressive. You win!"
+                    myScore += 1;
+                    db.ref('player' + thisPlayer).update({
+                        score: myScore,
+                    })
+                }
+                if (otherWeapon === "paper") {
+                    battleResult = "Your scissors cannot open against the strength of the paper. You lose."
+                }
+            }
+            $("#gameMessage").html(battleResult);
+        }
+
+        function clearArena() {
+            dbRef.update({
+                "player1/weapon": null,
+                "player2/weapon": 'paper',
+            })
+            gameState = 1;
+            armed = false;
+            $("#p1").empty();
+            $("#p2").empty();
+            $("#gameMessage").html("Choose your weapon.");
+        }
+
         //weapon object constructor
         var Weapon = function (name, imageUrl) {
             this.name = name;
@@ -90,30 +236,49 @@ var armed;
         var paper = new Weapon('paper', './assets/images/paper.png');
         var scissors = new Weapon('scissors', './assets/images/scissors.png');
 
-        //click on the weapon button, you are armed and your chosenWeapon is the thing you clicked on.
+        //===============================Arming yourself=====================================
         $(document).on('click', '.weaponButton', function () {
             if (armed === true) {
                 return;
             } else if (armed === false) {
                 chosenWeapon = $(this).data('weapon');
                 armed = true;
-                db.ref().update({
+                db.ref('player' + thisPlayer).update({
                     'weapon': chosenWeapon
                 })
-                console.log('weapon', chosenWeapon);
+                var imageW;
+                if (chosenWeapon === "rock") {
+                    imageW = "./assets/images/rock.png";
+                } else if (chosenWeapon === "paper") {
+                    imageW = "./assets/images/paper.png";
+                } else if (chosenWeapon === "scissors") {
+                    imageW = "./assets/images/scissors.png";
+                }
+                var myChoice = $("<img>").attr('src', imageW)
+                    .attr('class', 'weaponButton');
+                $('#p' + thisPlayer).append(myChoice);
+                console.log('weapon: ', chosenWeapon);
             }
+            logWeapons();
+        })
+
+        $("#gameMessage").on('click', function () {
+            clearArena();
         })
 
         $('#rock').append(rock.button);
         $('#paper').append(paper.button);
         $('#scissors').append(scissors.button);
 
+        setUp();
+        checkPlayers();
 
-        //push player's choice to firebase
-
-
-
-//logic for wins
+        $(window).on('unload', function () {
+            console.log("BYE!");
+            db.ref('player' + thisPlayer).update({
+                present: false,
+            })
+        })
 
 //make the chat thing work.
 
