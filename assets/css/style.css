@@ -25,3 +25,12 @@
 #gameMessage {
     background-color: lightgray;
 }
+
+#chatbox {
+    background-color: lightsalmon;
+    color: navy;
+    border: inset 5px green;
+    width: 30%;
+    height: 200px;
+    overflow: auto;
+}

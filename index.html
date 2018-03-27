@@ -17,11 +17,11 @@
         <div id='p1'>
             Player 1
         </div>
-        <div id='p1Score'></div>
+        <div id='p1Score'>0</div>
         <div id='p2'>
             Player 2
         </div>
-        <div id='p2Score'></div>
+        <div id='p2Score'>0</div>
         <div id='weapons'>
             <div id='rock'>rock</div>
             <div id='paper'>paper</div>
@@ -35,11 +35,11 @@
     <div id='chatPanel'>
         chatPanel
         <form>
-            <input id='sayThings' type='text'>
-            <button type='submit'>Say that.</button>
+            <input id='sayThings' type='text' autocomplete="off">
+            <button id='chatSubmit' type='submit'>Say that.</button>
         </form>
         <div id='chatbox'>
-            
+
         </div>
     </div>
 
@@ -79,6 +79,7 @@
         var myScore = 0;
         var yourScore = 0;
         var battleResult;
+        var messageRef;
 
         function updatePlayer(n) {
             db.ref('player' + n).update({
@@ -109,12 +110,7 @@
                     otherPlayer = 2;
                 }
                 updatePlayer(thisPlayer);
-                console.log("gamestate: ", gameState);
-                console.log('this player is: ', thisPlayer);
-                console.log(p1Exists, "that player 1 exists");
-                console.log(p2Exists, "that player 2 exists");
-                console.log(snap.val().player1.present);
-                console.log(snap.val().player2.present);
+                chatDetect(otherPlayer);
             })
         }
 
@@ -126,21 +122,18 @@
                 "player1/score": myScore,
                 "player2/score": yourScore,
                 "player1/weapon": null,
-                //change these values after debugging to null and false
-                "player2/weapon": 'rock',
-                "player2/present": true,
+                "player2/weapon": null,
+                "player1/messages": null,
+                "player2/messages": null,
             })
 
         }
         //==============================logging chosen weapons======================================
 
-
-
-
         function logWeapons() {
+            console.log('logging weapons');
             var thatWeapon = db.ref("player" + otherPlayer + "/weapon");
             var thisWeapon = db.ref("player" + thisPlayer + "/weapon");
-
 
             thatWeapon.on('value', function (snap) {
                 otherWeapon = snap.val();
@@ -155,6 +148,18 @@
             } else {
                 setTimeout(logWeapons, 300);
             }
+            var imageX;
+            if (otherWeapon === "rock") {
+                imageX = "./assets/images/rock.png";
+            } else if (otherWeapon === "paper") {
+                imageX = "./assets/images/paper.png";
+            } else if (otherWeapon === "scissors") {
+                imageX = "./assets/images/scissors.png";
+            }
+            var otherChoice = $("<img>").attr('src', imageX)
+                .attr('class', 'weaponButton');
+            $('#p' + otherPlayer).append(otherChoice);
+
             console.log(p1Ready, p2Ready);
         }
 
@@ -166,7 +171,7 @@
                     battleResult = "It's a tie! Two rocks collide. *Clack*"
                 }
                 if (otherWeapon === "paper") {
-                    battleResult = "Your rock has weighed the paper down. You win!"
+                    battleResult = "Your rock has weighed your opponent's paper down. You win!"
                     myScore += 1;
                     db.ref('player' + thisPlayer).update({
                         score: myScore,
@@ -181,14 +186,14 @@
                     battleResult = "You both get paper cuts."
                 }
                 if (otherWeapon === "scissors") {
-                    battleResult = "Your paper wraps around the scissors and they cannot be opened. You win!"
+                    battleResult = "Your paper wraps around your opponent's scissors and they cannot be opened. You win!"
                     myScore += 1;
                     db.ref('player' + thisPlayer).update({
                         score: myScore,
                     })
                 }
                 if (otherWeapon === "rock") {
-                    battleResult = "Your paper cannot be lifted against the weight of the rock. You lose."
+                    battleResult = "Your paper cannot be lifted against the weight of your opponent's rock. You lose."
                 }
             }
             if (myWeapon === "scissors") {
@@ -196,26 +201,38 @@
                     battleResult = "Tie! One more scissor and you could remake one of Johnny Depp's hands."
                 }
                 if (otherWeapon === "rock") {
-                    battleResult = "Your scissors cut straight through that rock. Impressive. You win!"
+                    battleResult = "Your scissors cut straight through your opponent's rock. Impressive. You win!"
                     myScore += 1;
                     db.ref('player' + thisPlayer).update({
                         score: myScore,
                     })
                 }
                 if (otherWeapon === "paper") {
-                    battleResult = "Your scissors cannot open against the strength of the paper. You lose."
+                    battleResult = "Your scissors cannot open against the strength of your opponent's paper. You lose."
                 }
             }
             $("#gameMessage").html(battleResult);
+            var score1 = db.ref('player1/score');
+            var score2 = db.ref('player2/score');
+            score1.on('value', function (snap) {
+                $("#p1Score").html(snap.val());
+            })
+            score2.on('value', function (snap) {
+                $("#p2Score").html(snap.val());
+            })
         }
 
         function clearArena() {
             dbRef.update({
                 "player1/weapon": null,
-                "player2/weapon": 'paper',
+                "player2/weapon": null,
+                "player1/messages": null,
+                "player2/messages": null,
             })
             gameState = 1;
             armed = false;
+            p1Ready = false;
+            p2Ready = false;
             $("#p1").empty();
             $("#p2").empty();
             $("#gameMessage").html("Choose your weapon.");
@@ -280,8 +297,34 @@
             })
         })
 
-//make the chat thing work.
+        //make the chat thing work.
+        $('#chatSubmit').on('click', function (event) {
+            event.preventDefault();
+            var message = $("#sayThings").val();
+            $("#sayThings").val('');
+            if (message) {
+                var myMessageRef = db.ref("player" + thisPlayer + "/messages");
+                myMessageRef.set("player" + thisPlayer + ": " + message + `<br>`)
+                $("#chatbox").append(`<span class='myWords'>` + 'Player' + thisPlayer + ': ' + message + `</span><br>`);
 
+                console.log(message);
+            } else {
+                console.log('youve gotta type something, bozo');
+            }
+
+
+        })
+        function chatDetect(op) {
+            console.log('me: ', thisPlayer);
+            messageRef = db.ref('player' + op + '/messages');
+            messageRef.on('value', function (snap) {
+                console.log('changesssss');
+                var newMessage = snap.val();
+                if (newMessage) {
+                    $("#chatbox").append(`<span class='otherWords'>` + snap.val() + `</span>`);
+                }
+            })
+        }
 
     </script>
 </body>
